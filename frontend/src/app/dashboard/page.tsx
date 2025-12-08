@@ -74,9 +74,12 @@ function extractDrugName(filename: string): string {
 }
 
 interface SearchHistoryItem {
-  analysis_id: string;
-  molecule_name: string;
-  created_at: string;
+  analysis_id?: string;
+  id?: string;
+  molecule_name?: string;
+  molecule?: string;
+  created_at?: string;
+  date?: string;
   status: string;
 }
 
@@ -389,21 +392,27 @@ export default function DashboardPage() {
             <CardContent>
               <div className="space-y-3">
                 {recentSearches.length > 0 ? (
-                  recentSearches.slice(0, 5).map((search, index) => (
+                  recentSearches.slice(0, 5).map((search, index) => {
+                    // Handle potential API response variations
+                    const id = search.analysis_id || search.id || `search-${index}`;
+                    const name = search.molecule_name || search.molecule || 'Unknown Molecule';
+                    const date = search.created_at || search.date || new Date().toISOString();
+                    
+                    return (
                     <motion.div
-                      key={search.analysis_id}
+                      key={id}
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: index * 0.1 }}
                       className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-indigo-50 transition-colors cursor-pointer group"
-                      onClick={() => router.push(`/results?id=${search.analysis_id}`)}
+                      onClick={() => router.push(`/results?id=${id}`)}
                     >
                       <div>
                         <p className="text-sm font-medium text-gray-900 group-hover:text-indigo-600">
-                          {search.molecule_name}
+                          {name}
                         </p>
                         <p className="text-xs text-gray-500">
-                          {formatRelativeTime(search.created_at)}
+                          {formatRelativeTime(date)}
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
@@ -413,7 +422,8 @@ export default function DashboardPage() {
                         <ArrowUpRight className="w-4 h-4 text-gray-400 group-hover:text-indigo-500" />
                       </div>
                     </motion.div>
-                  ))
+                  );
+                  })
                 ) : (
                   <div className="text-center py-8 text-gray-500">
                     <Search className="w-8 h-8 mx-auto mb-2 opacity-50" />

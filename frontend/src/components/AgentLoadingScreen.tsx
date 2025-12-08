@@ -144,9 +144,8 @@ export const AgentLoadingScreen: React.FC<AgentLoadingScreenProps> = ({ onComple
           animate={{ opacity: 1, y: 0 }}
           className="text-center mb-10"
         >
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl overflow-hidden mb-6 shadow-lg">
-            <img src="/pharmaAssist-logo.png" alt="PharmaAssist AI" className="w-full h-full object-cover" />
-          </div>
+          {/* Render the text logo alone (not in square box) */}
+          <img src="/pharmaAssist-logo.png" alt="PharmaAssist AI" className="mx-auto mb-6 h-20 w-auto object-contain" />
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
             Analyzing {currentRequest?.moleculeName || 'molecule'}{dots}
           </h1>

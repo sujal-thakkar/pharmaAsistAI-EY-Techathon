@@ -233,9 +233,6 @@ export const ResultDashboard: React.FC<ResultDashboardProps> = ({ result }) => {
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl overflow-hidden shadow-lg">
-                <img src="/pharmaAssist-logo.png" alt="PharmaAssist AI" className="w-full h-full object-cover" />
-              </div>
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">
                   {safeResult.moleculeData.name}

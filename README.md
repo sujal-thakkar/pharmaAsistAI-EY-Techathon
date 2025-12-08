@@ -1,8 +1,7 @@
 # PharmaAssist AI
+<img width="2816" height="509" alt="pharmaAssist-logo" src="https://github.com/user-attachments/assets/05ef2477-0cd4-4cf3-a05a-f434758ce532" />
 
 > **EY Techathon 6.0 Submission** - B2B Pharmaceutical Insights Platform
-
-![PharmaAssist AI](./docs/banner.png)
 
 ## 🧬 Overview
 

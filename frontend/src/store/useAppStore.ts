@@ -1,11 +1,11 @@
 // Zustand Store for PharmaAssist AI State Management
 import { create } from 'zustand';
-import { 
-  AnalysisRequest, 
-  AnalysisResult, 
-  AgentStep, 
+import {
+  AnalysisRequest,
+  AnalysisResult,
+  AgentStep,
   ChatMessage,
-  MoleculeData 
+  MoleculeData
 } from '@/types';
 import { AGENT_STEPS, MOLECULE_DATABASE, SAMPLE_ANALYSIS_RESULT, SAMPLE_METRICS } from '@/data/mockData';
 import { analysisAPI, chatAPI, AnalysisRequest as APIAnalysisRequest } from '@/services/api';
@@ -19,19 +19,19 @@ interface AppState {
   currentResult: AnalysisResult | null;
   isAnalyzing: boolean;
   analysisProgress: number;
-  
+
   // Agent Steps
   agentSteps: AgentStep[];
   currentStepIndex: number;
-  
+
   // Chat State
   chatMessages: ChatMessage[];
   isChatLoading: boolean;
-  
+
   // UI State
   activeTab: 'overview' | 'clinical' | 'market' | 'safety' | 'patents';
   sidebarExpanded: boolean;
-  
+
   // Actions
   startAnalysis: (request: AnalysisRequest) => Promise<void>;
   resetAnalysis: () => void;
@@ -48,18 +48,18 @@ const simulateAgentStep = async (
 ): Promise<void> => {
   const durations = [1500, 2000, 1800, 1500, 1700, 1600, 2200];
   const duration = durations[stepIndex] || 1500;
-  
+
   updateStep(stepIndex, { status: 'in-progress', progress: 0 });
-  
+
   // Simulate progress updates
   const progressSteps = 10;
   for (let i = 1; i <= progressSteps; i++) {
     await new Promise(resolve => setTimeout(resolve, duration / progressSteps));
     updateStep(stepIndex, { progress: (i / progressSteps) * 100 });
   }
-  
-  updateStep(stepIndex, { 
-    status: 'completed', 
+
+  updateStep(stepIndex, {
+    status: 'completed',
     progress: 100,
     endTime: new Date()
   });
@@ -77,27 +77,27 @@ export const useAppStore = create<AppState>((set, get) => ({
   isChatLoading: false,
   activeTab: 'overview',
   sidebarExpanded: true,
-  
+
   // Actions
   startAnalysis: async (request: AnalysisRequest) => {
-    set({ 
-      currentRequest: request, 
+    set({
+      currentRequest: request,
       isAnalyzing: true,
       analysisProgress: 0,
       agentSteps: AGENT_STEPS.map(step => ({ ...step, status: 'pending', progress: 0 })),
       currentStepIndex: 0
     });
-    
+
     const updateStep = (index: number, updates: Partial<AgentStep>) => {
       set(state => ({
-        agentSteps: state.agentSteps.map((step, i) => 
+        agentSteps: state.agentSteps.map((step, i) =>
           i === index ? { ...step, ...updates } : step
         ),
         currentStepIndex: updates.status === 'completed' ? index + 1 : index,
         analysisProgress: ((index + (updates.progress || 0) / 100) / AGENT_STEPS.length) * 100
       }));
     };
-    
+
     if (USE_BACKEND) {
       // Real backend integration
       try {
@@ -105,21 +105,21 @@ export const useAppStore = create<AppState>((set, get) => ({
           molecule_name: request.moleculeName,
           analysis_types: request.analysisTypes || ['clinical', 'market', 'regulatory'],
         };
-        
+
         const response = await analysisAPI.start(apiRequest);
-        
+
         // Poll for progress instead of SSE (more reliable)
         const pollInterval = setInterval(async () => {
           try {
             const data = await analysisAPI.get(response.analysis_id);
-            
+
             // Update progress from backend
             set({ analysisProgress: data.progress || 0 });
-            
+
             // Map backend steps to our agent steps
             if (data.steps) {
               const mappedSteps = AGENT_STEPS.map((step, index) => {
-                const backendStep = data.steps.find((s: any) => 
+                const backendStep = data.steps.find((s: any) =>
                   s.name?.toLowerCase().includes(step.name.split(' ')[0].toLowerCase())
                 );
                 if (backendStep) {
@@ -134,20 +134,20 @@ export const useAppStore = create<AppState>((set, get) => ({
               });
               set({ agentSteps: mappedSteps });
             }
-            
+
             if (data.status === 'completed' && data.results) {
               clearInterval(pollInterval);
-              
+
               // Use backend molecule data directly, with fallback for missing fields
               // Backend returns moleculeData.data with the actual data nested
               const rawMoleculeData = data.results.moleculeData || {};
               const backendMoleculeData = rawMoleculeData.data || rawMoleculeData || {};
               const moleculeName = data.results.moleculeName || request.moleculeName;
-              
+
               // Get regulatory data from backend
               const backendRegulatoryStatus = data.results.regulatoryStatus || {};
               const backendPatentInfo = data.results.patentInfo || {};
-              
+
               // Create molecule data from backend response
               const moleculeData: MoleculeData = {
                 id: backendMoleculeData.id || `mol-${Date.now()}`,
@@ -158,7 +158,7 @@ export const useAppStore = create<AppState>((set, get) => ({
                 mechanism: backendMoleculeData.mechanism || backendMoleculeData.mechanismOfAction || backendMoleculeData.mechanism_of_action || 'Not available',
                 indications: backendMoleculeData.indications || backendRegulatoryStatus.approvedIndications || backendMoleculeData.therapeutic_applications || []
               };
-              
+
               // Map regulatory status with proper fields
               const regulatoryStatus = {
                 fda: backendRegulatoryStatus.fda || 'Pending',
@@ -167,14 +167,14 @@ export const useAppStore = create<AppState>((set, get) => ({
                 approvedIndications: backendRegulatoryStatus.approvedIndications || backendRegulatoryStatus.approved_indications || [],
                 labelWarnings: backendRegulatoryStatus.labelWarnings || backendRegulatoryStatus.label_warnings || []
               };
-              
+
               // Map patent info with proper fields
               const patentInfo = {
                 status: backendPatentInfo.status || 'Unknown',
                 expiryDate: backendPatentInfo.expiryDate || backendPatentInfo.expiry_date || '',
                 patentNumber: backendPatentInfo.patentNumber || backendPatentInfo.patent_number || '',
               };
-              
+
               // Build result - spread data.results FIRST, then override with our properly mapped data
               const result: AnalysisResult = {
                 ...SAMPLE_ANALYSIS_RESULT,
@@ -185,11 +185,19 @@ export const useAppStore = create<AppState>((set, get) => ({
                 patentInfo,
                 generatedAt: new Date().toISOString()
               };
-              
-              set({ 
-                currentResult: result, 
+
+              set({
+                currentResult: result,
                 isAnalyzing: false,
                 analysisProgress: 100,
+                // Explicitly valid all steps as completed to ensure UI animation is correct
+                agentSteps: AGENT_STEPS.map(step => ({
+                  ...step,
+                  status: 'completed',
+                  progress: 100,
+                  output: step.name === 'Regulatory Analysis' && result.regulatoryStatus ? 'Analysis complete' :
+                    step.name === 'Patent Search' && result.patentInfo ? 'Analysis complete' : undefined
+                })),
                 chatMessages: [{
                   id: 'welcome-msg',
                   role: 'assistant',
@@ -207,7 +215,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             // Continue polling unless it's a fatal error
           }
         }, 1000); // Poll every second
-        
+
         // Timeout after 2 minutes
         setTimeout(() => {
           clearInterval(pollInterval);
@@ -217,13 +225,13 @@ export const useAppStore = create<AppState>((set, get) => ({
             runMockAnalysis();
           }
         }, 120000);
-        
+
       } catch (error) {
         console.error('Failed to start analysis:', error);
         // Fall back to mock on error
         runMockAnalysis();
       }
-      
+
       async function runMockAnalysis() {
         // Run through each agent step with mock data
         for (let i = 0; i < AGENT_STEPS.length; i++) {
@@ -238,13 +246,13 @@ export const useAppStore = create<AppState>((set, get) => ({
       }
       completeWithMockData();
     }
-    
+
     function completeWithMockData() {
       // Find molecule in database or create dynamic molecule data for the requested molecule
       const foundMolecule = MOLECULE_DATABASE.find(
         m => m.name.toLowerCase() === request.moleculeName.toLowerCase()
       );
-      
+
       // If molecule not in database, create dynamic entry with the actual requested name
       const moleculeData: MoleculeData = foundMolecule || {
         id: `mol-${Date.now()}`,
@@ -255,7 +263,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         mechanism: 'Information pending from analysis',
         indications: []
       };
-      
+
       // Create analysis result using sample data structure
       const result: AnalysisResult = {
         ...SAMPLE_ANALYSIS_RESULT,
@@ -263,11 +271,13 @@ export const useAppStore = create<AppState>((set, get) => ({
         moleculeData,
         generatedAt: new Date().toISOString()
       };
-      
-      set({ 
-        currentResult: result, 
+
+      set({
+        currentResult: result,
         isAnalyzing: false,
         analysisProgress: 100,
+        // Explicitly valid all steps as completed to ensure UI animation is correct
+        agentSteps: AGENT_STEPS.map(step => ({ ...step, status: 'completed', progress: 100 })),
         chatMessages: [{
           id: 'welcome-msg',
           role: 'assistant',
@@ -277,7 +287,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       });
     }
   },
-  
+
   resetAnalysis: () => {
     set({
       currentRequest: null,
@@ -290,7 +300,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       activeTab: 'overview'
     });
   },
-  
+
   sendChatMessage: async (message: string) => {
     const userMessage: ChatMessage = {
       id: `msg-${Date.now()}`,
@@ -298,14 +308,14 @@ export const useAppStore = create<AppState>((set, get) => ({
       content: message,
       timestamp: new Date().toISOString()
     };
-    
+
     set(state => ({
       chatMessages: [...state.chatMessages, userMessage],
       isChatLoading: true
     }));
-    
+
     const result = get().currentResult;
-    
+
     if (USE_BACKEND) {
       // Real backend integration
       try {
@@ -313,7 +323,7 @@ export const useAppStore = create<AppState>((set, get) => ({
           message,
           analysis_id: result?.id,
         });
-        
+
         const assistantMessage: ChatMessage = {
           id: `msg-${Date.now() + 1}`,
           role: 'assistant',
@@ -321,7 +331,7 @@ export const useAppStore = create<AppState>((set, get) => ({
           timestamp: new Date().toISOString(),
           sources: response.sources
         };
-        
+
         set(state => ({
           chatMessages: [...state.chatMessages, assistantMessage],
           isChatLoading: false
@@ -333,16 +343,16 @@ export const useAppStore = create<AppState>((set, get) => ({
     } else {
       await generateMockResponse();
     }
-    
+
     async function generateMockResponse() {
       // Simulate AI response delay
       await new Promise(resolve => setTimeout(resolve, 1500));
-      
+
       // Generate contextual response based on current result
       let responseContent = "I'm here to help you understand the analysis results. Could you please be more specific about what you'd like to know?";
-      
+
       const lowerMessage = message.toLowerCase();
-      
+
       if (lowerMessage.includes('clinical') || lowerMessage.includes('trial')) {
         responseContent = `Based on my analysis, **${result?.moleculeData?.name}** has ${result?.clinicalTrials?.length || 0} major clinical trials. The drug is currently being studied in various phases to evaluate efficacy and long-term outcomes.`;
       } else if (lowerMessage.includes('market') || lowerMessage.includes('revenue')) {
@@ -357,7 +367,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         const competitorList = competitors.map(c => `${c.name} (${c.marketShare}%)`).join(', ');
         responseContent = `Key competitors include: ${competitorList}. The competitive landscape shows **${competitors.length}** active players in this market.`;
       }
-      
+
       const assistantMessage: ChatMessage = {
         id: `msg-${Date.now() + 1}`,
         role: 'assistant',
@@ -365,21 +375,21 @@ export const useAppStore = create<AppState>((set, get) => ({
         timestamp: new Date().toISOString(),
         sources: result?.sources?.slice(0, 2)
       };
-      
+
       set(state => ({
         chatMessages: [...state.chatMessages, assistantMessage],
         isChatLoading: false
       }));
     }
   },
-  
+
   addChatMessage: (message: ChatMessage) => {
     set(state => ({
       chatMessages: [...state.chatMessages, message]
     }));
   },
-  
+
   setActiveTab: (tab) => set({ activeTab: tab }),
-  
+
   toggleSidebar: () => set(state => ({ sidebarExpanded: !state.sidebarExpanded }))
 }));

@@ -248,7 +248,7 @@ PharmaAssist AI provides a unified platform that:
 ## 👥 Team
 
 - **Team Name**: ChaturVeda
-- **Members**: Sreejita Deb, Rounak Saha, Sujal Thakkar, Rohit Singh
+- **Members**: [Sreejita Deb](https://github.com/Sreejita67), [Rounak Saha](https://github.com/Rounak36), [Sujal Thakkar](https://github.com/sujal-thakkar), [Rohit Singh](https://github.com/codeboy16)
 
 ## 📄 License
 
